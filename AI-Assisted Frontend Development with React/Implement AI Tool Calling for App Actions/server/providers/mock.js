@@ -1,0 +1,40 @@
+import {
+  normalEvents,
+  malformedEvents,
+  markdownEvents,
+} from "../recordings/tripAssistant.js";
+import { itineraryOutputs } from '../recordings/itinerary.js'
+import { toolCallOutputs } from '../recordings/toolCalls.js'
+
+const encoder = new TextEncoder();
+
+export function streamFromMock(scenario) {
+  const events =
+    scenario === "malformed"
+      ? malformedEvents
+      : scenario === "markdown"
+        ? markdownEvents
+        : normalEvents;
+
+  return new ReadableStream({
+    async start(controller) {
+      for (const { event, data } of events) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        const payload = typeof data === "string" ? data : JSON.stringify(data);
+        controller.enqueue(
+          encoder.encode(`event: ${event}\ndata: ${payload}\n\n`),
+        );
+      }
+      controller.close();
+    },
+  });
+}
+export async function itineraryFromMock(scenario) {
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+  return itineraryOutputs[scenario] ?? itineraryOutputs.normal
+}
+
+export async function toolCallsFromMock(scenario) {
+  await new Promise((resolve) => setTimeout(resolve, 800))
+  return toolCallOutputs[scenario] ?? toolCallOutputs.normal
+}
