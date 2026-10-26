@@ -1,0 +1,134 @@
+body {
+    font-family: Arial, sans-serif;
+    color: #243247;
+    background-color: #f5f7fa;
+}
+
+h1 {
+    color: #174a7e;
+}
+
+h2 {
+    color: #245f4b;
+}
+
+p {
+    line-height: 1.6;
+}
+
+.highlight {
+    color: #174a7e;
+    background-color: #e8f0fa;
+    font-weight: bold;
+}
+
+p {
+    color: #374151;
+}
+
+.content-box {
+    width: 300px;
+    padding: 20px;
+    border: 2px solid #174a7e;
+    margin: 20px;
+    background-color: #e8f0fa;
+    box-sizing: border-box;
+}
+
+.flex-container {
+    min-height: 160px;
+    padding: 16px;
+    border: 2px solid #174a7e;
+    background-color: #e8f0fa;
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    align-items: center;
+}
+
+.flex-item {
+    padding: 12px;
+    border: 1px solid #174a7e;
+    background-color: #ffffff;
+}
+
+.grid-container {
+    padding: 16px;
+    border: 2px solid #174a7e;
+    background-color: #e8f0fa;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px 16px;
+    width: 90%;
+    max-width: 960px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    
+}
+
+.grid-item {
+    padding: 20px;
+    border: 1px solid #174a7e;
+    background-color: #ffffff;
+}
+
+@media (min-width: 768px) {
+    .grid-container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.responsive-image {
+    max-width: 100%;
+    height: auto;
+}
+
+.learning-form {
+    width: 100%;
+    max-width: 480px;
+}
+
+.learning-form div {
+    margin-bottom: 16px;
+}
+
+.learning-form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+}
+
+.learning-form input,
+.learning-form select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    border: 2px solid #64748b;
+    border-radius: 4px;
+    font: inherit;
+    color: #243247;
+    background-color: #ffffff;
+}
+
+.learning-form button {
+    padding: 10px 18px;
+    border: 2px solid #174a7e;
+    border-radius: 4px;
+    font: inherit;
+    font-weight: bold;
+    color: #ffffff;
+    background-color: #174a7e;
+    cursor: pointer;
+}
+
+.learning-form button:hover {
+    background-color: #10365c;
+    border-color: #10365c;
+}
+
+.learning-form input:focus,
+.learning-form select:focus,
+.learning-form button:focus-visible {
+    outline: 3px solid #174a7e;
+    outline-offset: 3px;
+}
