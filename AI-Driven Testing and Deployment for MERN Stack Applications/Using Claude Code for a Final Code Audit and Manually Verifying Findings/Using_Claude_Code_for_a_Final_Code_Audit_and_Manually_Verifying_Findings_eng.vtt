@@ -1,0 +1,343 @@
+WEBVTT
+
+cue-1
+00:00:04.300 --> 00:00:09.260
+In this hands-on, we'll use Claude Code to
+find potential issues, verify them with
+
+cue-2
+00:00:09.260 --> 00:00:14.360
+tests, and document the evidence before
+release. Let's begin by defining the scope
+
+cue-3
+00:00:14.360 --> 00:00:15.780
+of our final code audit.
+
+cue-4
+00:00:16.620 --> 00:00:21.780
+Instead of asking Claude Code to inspect
+everything, we'll focus on how our React
+
+cue-5
+00:00:21.780 --> 00:00:24.480
+front end communicates with the Express
+API.
+
+cue-6
+00:00:25.460 --> 00:00:28.240
+This includes authentication, session
+handling,
+
+cue-7
+00:00:28.860 --> 00:00:30.800
+task operations, due dates,
+
+cue-8
+00:00:31.480 --> 00:00:32.040
+pagination,
+
+cue-9
+00:00:32.759 --> 00:00:34.860
+error responses, and response limits.
+
+cue-10
+00:00:35.840 --> 00:00:40.100
+A limited scope helps produce findings
+that are specific and testable.
+
+cue-11
+00:00:41.460 --> 00:00:45.360
+Before starting the audit, we also need to
+protect sensitive information.
+
+cue-12
+00:00:46.280 --> 00:00:50.560
+Our working project may contain
+environment variables, logs, or
+
+cue-13
+00:00:50.560 --> 00:00:55.160
+authentication tokens that should never be
+included in an AI investigation. Our
+
+cue-14
+00:00:55.160 --> 00:01:01.060
+audit workspace is ready, so we'll ask
+Claude Code to examine the interaction
+
+cue-15
+00:01:01.060 --> 00:01:03.220
+between the front end and back end.
+
+cue-16
+00:01:03.940 --> 00:01:08.040
+We're looking for situations where the two
+layers make different assumptions.
+
+cue-17
+00:01:08.800 --> 00:01:09.560
+For example,
+
+cue-18
+00:01:10.240 --> 00:01:13.820
+the front end may interpret a date
+differently from the back end,
+
+cue-19
+00:01:14.500 --> 00:01:18.760
+or an API response may expose more
+information than expected.
+
+cue-20
+00:01:20.280 --> 00:01:25.360
+Claude Code identifies several potential
+risks and assigns estimated severity
+
+cue-21
+00:01:25.360 --> 00:01:25.740
+levels.
+
+cue-22
+00:01:26.660 --> 00:01:28.180
+These include date formatting,
+
+cue-23
+00:01:28.820 --> 00:01:30.120
+authentication validation,
+
+cue-24
+00:01:30.760 --> 00:01:35.340
+token storage, registration responses, and
+unrestricted queries.
+
+cue-25
+00:01:36.340 --> 00:01:41.200
+Each finding also includes a suggested
+verification method. However,
+
+cue-26
+00:01:41.860 --> 00:01:45.540
+an AI-generated finding is not proof of a
+vulnerability.
+
+cue-27
+00:01:46.740 --> 00:01:48.320
+Some findings may be genuine,
+
+cue-28
+00:01:49.120 --> 00:01:52.260
+others may already be prevented by
+existing validation,
+
+cue-29
+00:01:52.900 --> 00:01:55.600
+and some may require a design decision.
+
+cue-30
+00:01:56.880 --> 00:02:02.460
+We'll investigate the due date issue first
+because it has a clear, testable impact
+
+cue-31
+00:02:02.460 --> 00:02:07.760
+on the user interface. We'll now verify
+the due date finding by tracing how a date
+
+cue-32
+00:02:07.760 --> 00:02:09.440
+moves through the application.
+
+cue-33
+00:02:10.500 --> 00:02:12.560
+The task form sends a calendar date,
+
+cue-34
+00:02:13.220 --> 00:02:15.360
+such as January 15th, 2030.
+
+cue-35
+00:02:16.240 --> 00:02:21.740
+The back end stores that value as a
+JavaScript date, representing midnight in
+
+cue-36
+00:02:21.740 --> 00:02:22.280
+UTC.
+
+cue-37
+00:02:23.340 --> 00:02:28.840
+When the React task list formats the value
+using the browser's local time zone, the
+
+cue-38
+00:02:28.840 --> 00:02:30.340
+displayed date can change.
+
+cue-39
+00:02:31.100 --> 00:02:35.480
+For someone in New York, midnight UTC
+falls on the previous evening,
+
+cue-40
+00:02:36.320 --> 00:02:39.520
+so January 15th appears as January 14th.
+
+cue-41
+00:02:40.340 --> 00:02:46.700
+This is a genuine user-facing defect, but
+it may not appear on a computer configured
+
+cue-42
+00:02:46.700 --> 00:02:48.360
+for India or UTC.
+
+cue-43
+00:02:49.360 --> 00:02:54.380
+To reproduce it reliably, we'll create a
+test that checks the same task in New
+
+cue-44
+00:02:54.380 --> 00:02:57.260
+York, UTC, and India time zones.
+
+cue-45
+00:02:57.920 --> 00:03:00.780
+The test fails for New York, confirming
+the issue.
+
+cue-46
+00:03:01.760 --> 00:03:06.980
+We'll then update the task list to format
+stored calendar dates using UTC rather
+
+cue-47
+00:03:06.980 --> 00:03:08.740
+than the browser's local time zone.
+
+cue-48
+00:03:10.040 --> 00:03:11.200
+Let's run the tests again.
+
+cue-49
+00:03:11.800 --> 00:03:16.720
+All three time zone cases now pass,
+showing that the selected date remains
+
+cue-50
+00:03:16.720 --> 00:03:19.600
+consistent regardless of the user's
+location.
+
+cue-51
+00:03:20.660 --> 00:03:26.620
+We've moved from an AI-generated suspicion
+to a verified defect, a targeted fix, and
+
+cue-52
+00:03:26.620 --> 00:03:30.100
+a passing regression test. We verified
+the due date issue,
+
+cue-53
+00:03:30.840 --> 00:03:35.880
+but a final audit must account for every
+finding, not only the one we fixed.
+
+cue-54
+00:03:36.680 --> 00:03:41.640
+We'll run the existing back-end tests that
+cover login validation, readiness
+
+cue-55
+00:03:41.640 --> 00:03:43.820
+responses, and duplicate registration.
+
+cue-56
+00:03:44.900 --> 00:03:49.700
+These checks help us determine which
+concerns are genuine and which are already
+
+cue-57
+00:03:49.700 --> 00:03:50.240
+addressed.
+
+cue-58
+00:03:51.100 --> 00:03:56.680
+For example, the reference audit initially
+flags a possible NoSQL injection risk,
+
+cue-59
+00:03:57.300 --> 00:04:01.500
+but the validation tests show that
+operator-based input is rejected.
+
+cue-60
+00:04:02.600 --> 00:04:05.160
+Other findings require a different
+response.
+
+cue-61
+00:04:06.460 --> 00:04:12.120
+Storing JWTs in local storage presents a
+security trade-off that needs an
+
+cue-62
+00:04:12.120 --> 00:04:16.140
+architectural decision rather than an
+automatic code change.
+
+cue-63
+00:04:17.060 --> 00:04:22.019
+We'll record every finding in our final
+audit document, along with its status,
+
+cue-64
+00:04:22.680 --> 00:04:24.660
+evidence, and required action.
+
+cue-65
+00:04:26.020 --> 00:04:30.580
+The important principle is that an
+AI-generated severity label does not
+
+cue-66
+00:04:30.580 --> 00:04:33.080
+establish whether a risk exists.
+
+cue-67
+00:04:34.120 --> 00:04:39.240
+Our final audit is trustworthy because
+each conclusion is supported by source
+
+cue-68
+00:04:39.240 --> 00:04:39.860
+inspection,
+
+cue-69
+00:04:40.620 --> 00:04:44.640
+tests, or an explicitly documented
+unresolved decision.
+
+cue-70
+00:04:45.680 --> 00:04:51.020
+We've used Claude Code to identify
+potential risks across our React front end
+
+cue-71
+00:04:51.020 --> 00:04:52.100
+and Express back end,
+
+cue-72
+00:04:53.080 --> 00:04:57.820
+then manually verified its findings
+through source inspection and automated
+
+cue-73
+00:04:57.820 --> 00:04:58.100
+tests.
+
+cue-74
+00:04:58.780 --> 00:05:01.560
+Thank you for watching, and I will see you
+in the next video.

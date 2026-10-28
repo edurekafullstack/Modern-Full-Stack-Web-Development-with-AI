@@ -1,0 +1,1928 @@
+{
+  "info": {
+    "name": "Course API",
+    "description": "Course API requests (Week 1 + Week 2). Select the \"Local\" environment and run the folders in order: requests save taskId, linkedTaskId and projectId for later requests. Set loadTestId to the project id printed by `node scripts/seed-tasks.js` before running \"List queries\". The Auth folder registers a new fictional user (user.<timestamp>@example.com) on each run and saves the issued JWT as token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "General",
+      "item": [
+        {
+          "name": "API root",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"API is running\"); });",
+                  "pm.test(\"Environment is reported\", () => { pm.expect(pm.response.json().data.environment).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            }
+          }
+        },
+        {
+          "name": "Health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Healthy\"); });",
+                  "pm.test(\"Database is connected\", () => { pm.expect(pm.response.json().data.database).to.eql(\"connected\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unknown route (JSON 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", () => { pm.response.to.have.status(404); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Route GET /api/v1/unknown not found\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/unknown",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "unknown"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Malformed JSON body",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"title\": \"Write tests\", }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "List projects (saves projectId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Projects retrieved\"); });",
+                  "pm.test(\"Course API project exists\", () => { const p = pm.response.json().data.projects.find((x) => x.name === \"Course API\"); pm.expect(p).to.be.an(\"object\"); pm.environment.set(\"projectId\", p._id); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create project (duplicate name)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", () => { pm.response.to.have.status(409); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"A record with that name already exists\"); });",
+                  "pm.test(\"Field error names the field\", () => { pm.expect(pm.response.json().errors[0].field).to.eql(\"name\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Course API\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create project (name too long)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Validation failed\"); });",
+                  "pm.test(\"Field error message\", () => { pm.expect(pm.response.json().errors[0].message).to.eql(\"Name must be at most 80 characters\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create task (saves taskId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => { pm.response.to.have.status(201); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Task created\"); });",
+                  "pm.test(\"Defaults applied\", () => { const d = pm.response.json().data; pm.expect(d.status).to.eql(\"todo\"); pm.expect(d.priority).to.eql(\"high\"); pm.environment.set(\"taskId\", d._id); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Write the update endpoint\",\n  \"priority\": \"high\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create task (empty body)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Validation failed\"); });",
+                  "pm.test(\"Title is required\", () => { pm.expect(pm.response.json().errors[0].message).to.eql(\"Title is required\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create task (invalid fields)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Validation failed\"); });",
+                  "pm.test(\"One error per field\", () => { pm.expect(pm.response.json().errors.map((e) => e.field)).to.eql([\"title\", \"status\", \"dueDate\", \"project\"]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"status\": \"blocked\",\n  \"dueDate\": \"next week\",\n  \"project\": \"abc\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create task in project (saves linkedTaskId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => { pm.response.to.have.status(201); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Task created\"); });",
+                  "pm.test(\"Project is populated\", () => { const d = pm.response.json().data; pm.expect(d.project.name).to.eql(\"Course API\"); pm.environment.set(\"linkedTaskId\", d._id); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Add project references\",\n  \"project\": \"{{projectId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create task (orphaned project)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Project 000000000000000000000000 not found\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Orphaned task\",\n  \"project\": \"000000000000000000000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List tasks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Tasks retrieved\"); });",
+                  "pm.test(\"Pagination present\", () => { const p = pm.response.json().data.pagination; pm.expect(p.page).to.eql(1); pm.expect(p.limit).to.eql(10); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List tasks by status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Tasks retrieved\"); });",
+                  "pm.test(\"Every task is done\", () => { pm.response.json().data.tasks.forEach((t) => pm.expect(t.status).to.eql(\"done\")); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?status=done",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "done"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List tasks (invalid project filter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Invalid value for project: abc\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?project=abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "project",
+                  "value": "abc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get task by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Task retrieved\"); });",
+                  "pm.test(\"Correct task\", () => { pm.expect(pm.response.json().data._id).to.eql(pm.environment.get(\"taskId\")); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get task with project (populated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Task retrieved\"); });",
+                  "pm.test(\"Project name and description\", () => { const p = pm.response.json().data.project; pm.expect(p.name).to.eql(\"Course API\"); pm.expect(p.description).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{linkedTaskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{linkedTaskId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get unknown task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", () => { pm.response.to.have.status(404); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Task 000000000000000000000000 not found\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/000000000000000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "000000000000000000000000"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get task with invalid id (abc)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Invalid id: abc\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "abc"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get task with invalid id (0)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Invalid id: 0\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "0"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get task with invalid id (2.5)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Invalid id: 2.5\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/2.5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "2.5"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update task (status; createdAt ignored)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Task updated\"); });",
+                  "pm.test(\"Updated document returned; createdAt unchanged\", () => { const d = pm.response.json().data; pm.expect(d.status).to.eql(\"done\"); pm.expect(d.createdAt.startsWith(\"2000\")).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"done\",\n  \"createdAt\": \"2000-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update task (invalid status and title)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Validation failed\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"blocked\",\n  \"title\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update task (blank title)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Validation failed\"); });",
+                  "pm.test(\"Title is required\", () => { pm.expect(pm.response.json().errors[0].message).to.eql(\"Title is required\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"  \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update task (missing project)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Project 000000000000000000000000 not found\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project\": \"000000000000000000000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 204\", () => { pm.response.to.have.status(204); });",
+                  "pm.test(\"No body\", () => { pm.expect(pm.response.text()).to.eql(\"\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get deleted task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", () => { pm.response.to.have.status(404); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete task again",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", () => { pm.response.to.have.status(404); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete task with invalid id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Invalid id: abc\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "abc"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete linked task (cleanup)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 204\", () => { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{linkedTaskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{linkedTaskId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "List queries",
+      "item": [
+        {
+          "name": "Load Test project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"total 120, totalPages 12\", () => { const p = pm.response.json().data.pagination; pm.expect(p.total).to.eql(120); pm.expect(p.totalPages).to.eql(12); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?project={{loadTestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "project",
+                  "value": "{{loadTestId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter + page 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"count 5, total 40, totalPages 8, starts at 016\", () => { const d = pm.response.json().data; pm.expect(d.count).to.eql(5); pm.expect(d.pagination.total).to.eql(40); pm.expect(d.pagination.totalPages).to.eql(8); pm.expect(d.tasks[0].title).to.eql(\"Sample task 016\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?project={{loadTestId}}&status=todo&limit=5&page=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "project",
+                  "value": "{{loadTestId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "todo"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "page",
+                  "value": "2"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sort by latest due date",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Latest due dates first\", () => { pm.expect(pm.response.json().data.tasks.map((t) => t.title)).to.eql([\"Sample task 120\", \"Sample task 119\", \"Sample task 118\"]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?project={{loadTestId}}&sort=-dueDate&limit=3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "project",
+                  "value": "{{loadTestId}}"
+                },
+                {
+                  "key": "sort",
+                  "value": "-dueDate"
+                },
+                {
+                  "key": "limit",
+                  "value": "3"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Repeated status filter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"total 80\", () => { pm.expect(pm.response.json().data.pagination.total).to.eql(80); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?project={{loadTestId}}&status=todo&status=done",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "project",
+                  "value": "{{loadTestId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "todo"
+                },
+                {
+                  "key": "status",
+                  "value": "done"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Page past the end",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Empty page\", () => { const d = pm.response.json().data; pm.expect(d.count).to.eql(0); pm.expect(d.tasks).to.eql([]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?project={{loadTestId}}&status=todo&limit=5&page=9",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "project",
+                  "value": "{{loadTestId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "todo"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "page",
+                  "value": "9"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Limit capped at 50",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"limit is 50\", () => { pm.expect(pm.response.json().data.pagination.limit).to.eql(50); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?limit=500",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "500"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sort by disallowed field",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Cannot sort by \\\"priority\\\". Use: dueDate, createdAt, title\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?sort=priority",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "priority"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Invalid page",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"page must be a positive whole number\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?page=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Operator injection ignored",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Tasks retrieved\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?status[$ne]=done",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "status[$ne]",
+                  "value": "done"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register (new user, saves authEmail)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set(\"authEmail\", \"user.\" + Date.now() + \"@example.com\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => { pm.response.to.have.status(201); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Account created\"); });",
+                  "pm.test(\"Name trimmed, email normalised\", () => { const d = pm.response.json().data; pm.expect(d.name).to.eql(\"Asha\"); pm.expect(d.email).to.eql(pm.environment.get(\"authEmail\")); });",
+                  "pm.test(\"Password hash not returned\", () => { pm.expect(pm.response.text().includes(\"password\")).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \" Asha \",\n  \"email\": \" {{authEmail}} \",\n  \"password\": \"CorrectHorse9!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Register (duplicate email, different case)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set(\"authEmailUpper\", pm.environment.get(\"authEmail\").toUpperCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", () => { pm.response.to.have.status(409); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"A record with that email already exists\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Asha Two\",\n  \"email\": \"{{authEmailUpper}}\",\n  \"password\": \"CorrectHorse9!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Register (invalid fields)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Validation failed\"); });",
+                  "pm.test(\"One error per field\", () => { pm.expect(pm.response.json().errors.map((e) => e.message)).to.eql([\"Name is required\", \"Email must be a valid email address\", \"Password must be at least 8 characters\"]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"email\": \"not-an-email\",\n  \"password\": \"short\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Register (password over 72 bytes)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Validation failed\"); });",
+                  "pm.test(\"72-byte message\", () => { pm.expect(pm.response.json().errors[0].message).to.eql(\"Password must be at most 72 bytes\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Long\",\n  \"email\": \"long.password@example.com\",\n  \"password\": \"éééééééééééééééééééééééééééééééééééééééé\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login (saves token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body status is success\", () => { pm.expect(pm.response.json().status).to.eql(\"success\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Logged in\"); });",
+                  "pm.test(\"User returned without password\", () => { const u = pm.response.json().data.user; pm.expect(u.email).to.eql(pm.environment.get(\"authEmail\")); pm.expect(pm.response.text().includes(\"password\")).to.eql(false); });",
+                  "pm.test(\"Token is a JWT for this user, valid for 1 hour\", () => { const decode = (part) => JSON.parse(atob(part.replace(/-/g, \"+\").replace(/_/g, \"/\"))); const d = pm.response.json().data; const parts = d.token.split(\".\"); pm.expect(parts.length).to.eql(3); pm.expect(decode(parts[0]).alg).to.eql(\"HS256\"); const p = decode(parts[1]); pm.expect(p.sub).to.eql(d.user._id); pm.expect(p.exp - p.iat).to.eql(3600); pm.environment.set(\"token\", d.token); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"CorrectHorse9!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login (wrong password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", () => { pm.response.to.have.status(401); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Invalid email or password\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"WrongPassword1!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login (unknown email)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", () => { pm.response.to.have.status(401); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Invalid email or password\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nobody@example.com\",\n  \"password\": \"WrongPassword1!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login (missing fields)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });",
+                  "pm.test(\"Body status is error\", () => { pm.expect(pm.response.json().status).to.eql(\"error\"); });",
+                  "pm.test(\"Message is correct\", () => { pm.expect(pm.response.json().message).to.eql(\"Validation failed\"); });",
+                  "pm.test(\"Both fields reported\", () => { pm.expect(pm.response.json().errors.map((e) => e.field)).to.eql([\"email\", \"password\"]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,255 @@
+import request from "supertest";
+import jwt from "jsonwebtoken";
+import app from "../src/app.js";
+import { env } from "../src/config/env.js";
+import { User } from "../src/models/user.model.js";
+import { Task } from "../src/models/task.model.js";
+import { connect, clear, close } from "./helpers/db.js";
+
+beforeAll(connect, 60_000);
+afterEach(clear);
+afterAll(close);
+
+const UNKNOWN_ID = "000000000000000000000000";
+
+let asha;
+let ben;
+let admin;
+
+beforeEach(async () => {
+  [asha, ben, admin] = await User.create([
+    { name: "Asha", email: "asha@example.com", password: "CorrectHorse9!" },
+    { name: "Ben", email: "ben@example.com", password: "CorrectHorse9!" },
+    {
+      name: "Admin",
+      email: "admin@example.com",
+      password: "CorrectHorse9!",
+      role: "admin",
+    },
+  ]);
+});
+
+// Wraps supertest so every request carries a bearer token for `user`.
+function as(user = asha) {
+  const token = jwt.sign({ sub: user.id }, env.jwtSecret);
+  const auth = (req) => req.set("Authorization", `Bearer ${token}`);
+  return {
+    get: (url) => auth(request(app).get(url)),
+    post: (url) => auth(request(app).post(url)),
+    patch: (url) => auth(request(app).patch(url)),
+    delete: (url) => auth(request(app).delete(url)),
+  };
+}
+
+async function createTask(fields = {}, user = asha) {
+  const res = await as(user)
+    .post("/api/v1/tasks")
+    .send({ title: "Write the first test", ...fields });
+  return res.body.data;
+}
+
+describe("POST /api/v1/tasks", () => {
+  it("creates a task with defaults and returns 201", async () => {
+    const res = await as()
+      .post("/api/v1/tasks")
+      .send({ title: "  Write the first test  ", priority: "high" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data).toMatchObject({
+      title: "Write the first test",
+      status: "todo",
+      priority: "high",
+    });
+    expect(res.body.data._id).toEqual(expect.any(String));
+  });
+
+  it("returns 400 with a message for each invalid field", async () => {
+    const res = await as()
+      .post("/api/v1/tasks")
+      .send({ title: "", status: "blocked" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errors).toEqual(
+      expect.arrayContaining([
+        { field: "title", message: "Title is required" },
+        {
+          field: "status",
+          message: "Status must be one of: todo, in-progress, done",
+        },
+      ]),
+    );
+  });
+});
+
+describe("GET /api/v1/tasks", () => {
+  it("filters by status and reports pagination", async () => {
+    await createTask({ title: "Task one" });
+    await createTask({ title: "Task two", status: "done" });
+    await createTask({ title: "Task three", status: "done" });
+
+    const res = await as().get("/api/v1/tasks?status=done&limit=1");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.count).toBe(1);
+    expect(res.body.data.tasks[0].status).toBe("done");
+    expect(res.body.data.pagination).toEqual({
+      page: 1,
+      limit: 1,
+      total: 2,
+      totalPages: 2,
+    });
+  });
+});
+
+describe("GET /api/v1/tasks/:id", () => {
+  it("returns the task", async () => {
+    const task = await createTask();
+    const res = await as().get(`/api/v1/tasks/${task._id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.title).toBe("Write the first test");
+  });
+
+  it("returns 404 for an id that matches no task", async () => {
+    const res = await as().get(`/api/v1/tasks/${UNKNOWN_ID}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe(`Task ${UNKNOWN_ID} not found`);
+  });
+
+  it("returns 400 for a malformed id", async () => {
+    const res = await as().get("/api/v1/tasks/abc");
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Invalid id: abc");
+  });
+});
+
+describe("PATCH /api/v1/tasks/:id", () => {
+  it("returns the updated task", async () => {
+    const task = await createTask();
+    const res = await as()
+      .patch(`/api/v1/tasks/${task._id}`)
+      .send({ status: "done" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("done");
+  });
+
+  it("rejects an invalid status and leaves the task unchanged", async () => {
+    const task = await createTask();
+    const res = await as()
+      .patch(`/api/v1/tasks/${task._id}`)
+      .send({ status: "blocked" });
+
+    expect(res.status).toBe(400);
+    const stored = await as().get(`/api/v1/tasks/${task._id}`);
+    expect(stored.body.data.status).toBe("todo");
+  });
+});
+
+describe("DELETE /api/v1/tasks/:id", () => {
+  it("returns 204 and removes the task", async () => {
+    const task = await createTask();
+    const res = await as().delete(`/api/v1/tasks/${task._id}`);
+
+    expect(res.status).toBe(204);
+    const stored = await as().get(`/api/v1/tasks/${task._id}`);
+    expect(stored.status).toBe(404);
+  });
+
+  it("returns 404 for an id that matches no task", async () => {
+    const res = await as().delete(`/api/v1/tasks/${UNKNOWN_ID}`);
+
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("task ownership", () => {
+  const FORBIDDEN = "You do not have permission to access this task";
+
+  it("sets the owner from the token and ignores a client-supplied owner", async () => {
+    const res = await as(asha)
+      .post("/api/v1/tasks")
+      .send({ title: "Mine", owner: ben.id });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.owner).toBe(asha.id);
+  });
+
+  it("lists only the current user's tasks", async () => {
+    await createTask({ title: "Asha task" }, asha);
+    await createTask({ title: "Ben task" }, ben);
+
+    const res = await as(asha).get("/api/v1/tasks");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.tasks.map((t) => t.title)).toEqual(["Asha task"]);
+    expect(res.body.data.pagination.total).toBe(1);
+  });
+
+  it("does not let a query parameter widen the list to other owners", async () => {
+    await createTask({ title: "Ben task" }, ben);
+
+    const res = await as(asha).get(`/api/v1/tasks?owner=${ben.id}`);
+
+    expect(res.body.data.tasks).toEqual([]);
+  });
+
+  it("lets an admin list every task", async () => {
+    await createTask({ title: "Asha task" }, asha);
+    await createTask({ title: "Ben task" }, ben);
+
+    const res = await as(admin).get("/api/v1/tasks?sort=title");
+
+    expect(res.body.data.tasks.map((t) => t.title)).toEqual([
+      "Asha task",
+      "Ben task",
+    ]);
+  });
+
+  it("returns 403 when reading, updating or deleting another user's task", async () => {
+    const task = await createTask({}, asha);
+    const url = `/api/v1/tasks/${task._id}`;
+
+    const responses = [
+      await as(ben).get(url),
+      await as(ben).patch(url).send({ status: "done" }),
+      await as(ben).delete(url),
+    ];
+
+    for (const res of responses) {
+      expect(res.status).toBe(403);
+      expect(res.body.message).toBe(FORBIDDEN);
+    }
+    const stored = await Task.findById(task._id);
+    expect(stored.status).toBe("todo");
+  });
+
+  it("lets an admin read, update and delete any task", async () => {
+    const task = await createTask({}, asha);
+    const url = `/api/v1/tasks/${task._id}`;
+
+    expect((await as(admin).get(url)).status).toBe(200);
+    const updated = await as(admin).patch(url).send({ status: "done" });
+    expect(updated.body.data).toMatchObject({ status: "done", owner: asha.id });
+    expect((await as(admin).delete(url)).status).toBe(204);
+  });
+
+  it("does not let PATCH change the owner", async () => {
+    const task = await createTask({}, asha);
+
+    const res = await as(asha)
+      .patch(`/api/v1/tasks/${task._id}`)
+      .send({ title: "Renamed", owner: ben.id });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ title: "Renamed", owner: asha.id });
+  });
+
+  it("returns 401 without a token", async () => {
+    const res = await request(app).get("/api/v1/tasks");
+
+    expect(res.status).toBe(401);
+  });
+});
